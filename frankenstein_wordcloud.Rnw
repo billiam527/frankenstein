@@ -1,6 +1,12 @@
 \documentclass{article}
 \usepackage{natbib}
 
+<<echo=FALSE>>=
+packages<-c('dplyr','stringr','tidytext','wordcloud','tm','gutenbergr')
+knitr::write_bib(packages,file='packages.bib')
+@
+
+
 \begin{document}
 \title{Frankenstein's Wordcloud}
 \author{Bill Fisher}
@@ -13,7 +19,7 @@ In this article, we construct a wordcloud using the tidytext R package for Mary 
 \textit{Frankenstein, or the Modern Prometheus} (or simply, Frankenstein for short), is a novel written by English author Mary Shelley (1797-1851) that tells the story of Victor Frankenstein, a young scientist who creates a grotesque but sapient creature in an unorthodox scientific experiment. Shelley started writing the story when she was 18, and the first edition of the novel was published in London in 1818, when she was 20.\footnote{The novel was originally published anonymously. Her name first appeared on the second edition, published in France in 1823.}  The book was later published around the world.\citep{Wikipedia}
 
 \section{The GutenbergR package}
-There is a package called GutenbergR whichholds the text of many novels to be deciphered using R.  One first has to install this package and bring it in with the library function.  Once loaded, we will find our book and download it.\footnote{You can search the database for the title of Frankenstein using the following codeline: gutenberg_works(str_detect(title,'Frankenstein'))} Once downloaded, we can store it in our dataframe.
+There is a package called GutenbergR whichholds the text of many novels to be deciphered using R.  One first has to install this package and bring it in with the library function.  Once loaded, we will find our book and download it.\footnote{You can search the database for the title of Frankenstein using the following codeline: gutenberg\_works(str\_detect(title,'Frankenstein'))} Once downloaded, we can store it in our dataframe.
 
 <<warning=FALSE,message=FALSE>>=
 library(gutenbergr)
@@ -21,7 +27,7 @@ frankenstein<-gutenberg_download(84)
 frankenstein
 @
 
-\noindent The dataframe, frankenstein, now contains our book but we still need to clean up the data.  Breaking it down into two major steps, we need to  clear the clutter at the beginning of the book and we need to erase the word  "chapter" from the beginning of each chapter.  To accompliosh this, we run the following code:
+\noindent The dataframe, frankenstein, now contains our book but we still need to clean up the data.  Breaking it down into two major steps, we need to  clear the clutter at the beginning of the book and we need to erase the word  "chapter" from the beginning of each chapter.  To accomplish this, we run the following code:
 
 <<warning=FALSE,message=FALSE>>=
 library(stringr)
@@ -51,24 +57,43 @@ words_df<-words_df%>%
 words_df
 @
 
-\niindent Now that we have our words seperated, we need to get a count of each word so we can finish constructing our wordcloud.  To do this, we will once again use dplyr.
+\noindent Now that we have our words seperated, we need to get a count of each word so we can finish constructing our wordcloud.  To do this, we will once again use dplyr.
 
 <<warning=FALSE,message=FALSE>>=
 word_freq<-words_df%>%
   group_by(word)%>%
   summarize(count=n())
 
-print(word_freq,n=100)
+word_freq
 @
 
 \noindent Finally, we can construct our wordcloud.
 
-<<>>=
+<<warning=FALSE,message=FALSE>>=
 library(wordcloud)
 wordcloud(word_freq$word,word_freq$count,min.freq=27)
 @
 
+\noindent If we want, we can look at a certain sentiment's wordcloud.  For instance, using tidytext to define each word's sentiment, we can make a wordcloud out of each of Frankenstein's "fear" words with the following piece of code:
+
+<<warning=FALSE,message=FALSE>>=
+nrc<-get_sentiments('nrc')
+
+nrc_fear<-nrc%>%
+  filter(sentiment=='fear')
+
+frankenstein_words_df<-inner_join(nrc_fear,words_df)
+
+frank_fear_words<-frankenstein_words_df%>%
+  group_by(word)%>%
+  summarize(count=n())
+frank_fear_words
+
+wordcloud(frank_fear_words$word,frank_fear_words$count,min.freq=5)
+@
+
+
 \bibliographystyle{apa}
-\bibliography{frankenstein_wordcloud}
+\bibliography{frankenstein_wordcloud,packages}
 \nocite{*}
 \end{document}
